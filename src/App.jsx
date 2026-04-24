@@ -269,7 +269,7 @@ const s = {
 export default function App() {
   const [width,    setWidth]    = useState('')
   const [length,   setLength]   = useState('')
-  const [maxWt,    setMaxWt]    = useState('')   // skid max weight lbs
+  const [maxWt,    setMaxWt]    = useState('4000')   // skid max weight lbs
 
   const [qty,      setQty]      = useState('1')
   const [lbsPc,    setLbsPc]    = useState('')
