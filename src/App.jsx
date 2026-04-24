@@ -56,6 +56,7 @@ const C = {
   muted:      '#666',
   faint:      '#999',
   green:      '#1a9e4a',
+  greenMuted: 'rgba(26,158,74,0.08)',
 }
 
 // ---------------------------------------------------------------------------
@@ -72,7 +73,7 @@ const s = {
   },
   header: {
     width: '100%',
-    maxWidth: 600,
+    maxWidth: 640,
     borderBottom: '1px solid #2a2a2a',
     padding: '20px 0 16px',
     marginBottom: 32,
@@ -100,12 +101,21 @@ const s = {
   },
   card: {
     width: '100%',
-    maxWidth: 600,
+    maxWidth: 640,
     background: C.surface,
     border: `1px solid ${C.border}`,
     borderRadius: 8,
-    padding: '24px 28px',
-    marginBottom: 16,
+    padding: '22px 26px',
+    marginBottom: 14,
+  },
+  cardGreen: {
+    width: '100%',
+    maxWidth: 640,
+    background: C.surface,
+    border: `1px solid #b2dfc2`,
+    borderRadius: 8,
+    padding: '22px 26px',
+    marginBottom: 14,
   },
   sectionLabel: {
     fontSize: 11,
@@ -113,24 +123,36 @@ const s = {
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
     color: C.red,
+    marginBottom: 4,
+  },
+  sectionLabelGreen: {
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    color: C.green,
+    marginBottom: 4,
+  },
+  sectionDesc: {
+    fontSize: 12,
+    color: C.muted,
     marginBottom: 14,
+    lineHeight: 1.5,
   },
   row2: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: 16,
-    marginBottom: 0,
   },
   row3: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr 1fr',
     gap: 16,
   },
-  row2b: {
+  row2_1: {
     display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
+    gridTemplateColumns: '1fr 1fr 160px',
     gap: 16,
-    marginTop: 16,
   },
   field: {
     display: 'flex',
@@ -165,7 +187,7 @@ const s = {
     border: `1px solid ${C.warnBorder}`,
     borderRadius: 6,
     padding: '10px 14px',
-    marginTop: 16,
+    marginTop: 14,
     fontSize: 13,
     color: C.warnText,
     display: 'flex',
@@ -175,7 +197,7 @@ const s = {
   },
   resultCard: {
     width: '100%',
-    maxWidth: 600,
+    maxWidth: 640,
     background: C.surface,
     border: `1px solid ${C.border}`,
     borderRadius: 8,
@@ -184,7 +206,7 @@ const s = {
   resultHeader: {
     background: C.redMuted,
     borderBottom: `1px solid ${C.border}`,
-    padding: '10px 28px',
+    padding: '10px 26px',
     fontSize: 11,
     fontWeight: 600,
     letterSpacing: '0.1em',
@@ -204,7 +226,7 @@ const s = {
     padding: '2px 10px',
   },
   resultBody: {
-    padding: '20px 28px',
+    padding: '20px 26px',
   },
   metricsGrid: {
     display: 'grid',
@@ -228,8 +250,8 @@ const s = {
     color: C.text,
   },
   metricValGreen: {
-    fontSize: 24,
-    fontWeight: 600,
+    fontSize: 28,
+    fontWeight: 700,
     color: C.green,
   },
   metricSub: {
@@ -240,7 +262,24 @@ const s = {
   divider: {
     border: 'none',
     borderTop: `1px solid ${C.border}`,
-    margin: '0 0 16px',
+    margin: '16px 0',
+  },
+  perLbHighlight: {
+    background: C.greenMuted,
+    border: `1px solid #b2dfc2`,
+    borderRadius: 8,
+    padding: '16px 20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    marginBottom: 16,
+  },
+  perLbLabel: {
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase',
+    color: C.green,
   },
   lookupNote: {
     borderTop: `1px solid ${C.border}`,
@@ -257,7 +296,7 @@ const s = {
     lineHeight: 1.6,
   },
   promptText: {
-    padding: '20px 28px',
+    padding: '20px 26px',
     fontSize: 13,
     color: C.faint,
   },
@@ -267,60 +306,68 @@ const s = {
 // Component
 // ---------------------------------------------------------------------------
 export default function App() {
-  const [width,    setWidth]    = useState('')
-  const [length,   setLength]   = useState('')
-  const [maxWt,    setMaxWt]    = useState('4000')   // skid max weight lbs
 
+  // ---- Skid dimensions + max weight ---------------------------------------
+  const [width,  setWidth]  = useState('')
+  const [length, setLength] = useState('')
+  const [maxWt,  setMaxWt]  = useState('4000')
+
+  // ---- Drop lbs (drives skid count) ---------------------------------------
+  const [dropLbs, setDropLbs] = useState('')
+
+  // ---- Order lbs (drives per lb cost for quote) ---------------------------
+  // Dynamic: fill any 2 of qty / lbsPc / totalLbs
   const [qty,      setQty]      = useState('1')
   const [lbsPc,    setLbsPc]    = useState('')
-  const [totalLbs, setTotalLbs] = useState('')
-
+  const [orderLbs, setOrderLbs] = useState('')
   const [editOrder, setEditOrder] = useState(['qty'])
-  const [focus,     setFocus]     = useState(null)
 
-  // ---- dynamic weight logic ------------------------------------------------
-  const ALL_FIELDS = ['qty', 'lbsPc', 'totalLbs']
+  const [focus, setFocus] = useState(null)
+
+  // ---- Order lbs dynamic logic --------------------------------------------
+  const ALL_FIELDS = ['qty', 'lbsPc', 'orderLbs']
   const autoField  = editOrder.length >= 2
     ? ALL_FIELDS.find(f => !editOrder.slice(0, 2).includes(f))
     : null
 
   const qNum = parseFloat(qty)      || 0
   const lNum = parseFloat(lbsPc)    || 0
-  const tNum = parseFloat(totalLbs) || 0
+  const oNum = parseFloat(orderLbs) || 0
 
   let dispQty      = qty
   let dispLbsPc    = lbsPc
-  let dispTotalLbs = totalLbs
+  let dispOrderLbs = orderLbs
 
-  if (autoField === 'totalLbs' && qNum > 0 && lNum > 0) {
-    dispTotalLbs = (qNum * lNum).toFixed(2)
-  } else if (autoField === 'lbsPc' && qNum > 0 && tNum > 0) {
-    dispLbsPc = (tNum / qNum).toFixed(4)
-  } else if (autoField === 'qty' && lNum > 0 && tNum > 0) {
-    dispQty = (tNum / lNum).toFixed(2)
+  if (autoField === 'orderLbs' && qNum > 0 && lNum > 0) {
+    dispOrderLbs = (qNum * lNum).toFixed(2)
+  } else if (autoField === 'lbsPc' && qNum > 0 && oNum > 0) {
+    dispLbsPc = (oNum / qNum).toFixed(4)
+  } else if (autoField === 'qty' && lNum > 0 && oNum > 0) {
+    dispQty = (oNum / lNum).toFixed(2)
   }
 
-  const finalLbs = parseFloat(dispTotalLbs) || 0
+  const finalOrderLbs = parseFloat(dispOrderLbs) || 0
 
   function touch(field) {
     setEditOrder(prev => [field, ...prev.filter(f => f !== field)].slice(0, 2))
   }
 
-  // ---- skid count ----------------------------------------------------------
-  const maxWtNum   = parseFloat(maxWt) || 0
-  const skidCount  = maxWtNum > 0 && finalLbs > 0
-    ? Math.ceil(finalLbs / maxWtNum)
+  // ---- Skid count (based on drop lbs) -------------------------------------
+  const dropLbsNum = parseFloat(dropLbs) || 0
+  const maxWtNum   = parseFloat(maxWt)   || 0
+  const skidCount  = maxWtNum > 0 && dropLbsNum > 0
+    ? Math.ceil(dropLbsNum / maxWtNum)
     : 1
   const multiSkid  = skidCount > 1
 
-  // ---- price lookup --------------------------------------------------------
+  // ---- Price lookup -------------------------------------------------------
   const w   = parseFloat(width)
   const len = parseFloat(length)
-  const hasSize    = w > 0 && len > 0
-  const result     = hasSize ? getPrice(w, len) : null
-  const packPerSkid  = result ? result.price : 0
+  const hasSize       = w > 0 && len > 0
+  const result        = hasSize ? getPrice(w, len) : null
+  const packPerSkid   = result ? result.price : 0
   const totalPackCost = packPerSkid * skidCount
-  const perLb      = result && finalLbs > 0 ? totalPackCost / finalLbs : null
+  const perLb         = result && finalOrderLbs > 0 ? totalPackCost / finalOrderLbs : null
 
   function noteText() {
     if (!result) return null
@@ -334,7 +381,7 @@ export default function App() {
 
   const note = noteText()
 
-  // ---- input style ---------------------------------------------------------
+  // ---- Input style --------------------------------------------------------
   function inputStyle(field) {
     const isAuto = autoField === field
     return {
@@ -362,10 +409,14 @@ export default function App() {
         <span style={s.subtitle}>Champagne Metals</span>
       </div>
 
-      {/* Skid Dimensions + Max Weight */}
+      {/* ── CARD 1: Drop Skid Setup ────────────────────────────────────── */}
       <div style={s.card}>
-        <div style={s.sectionLabel}>Skid Dimensions</div>
-        <div style={s.row2}>
+        <div style={s.sectionLabel}>Drop Skid Setup</div>
+        <div style={s.sectionDesc}>
+          The drop/remainder skid size and capacity — determines pack cost per skid and how many skids are needed.
+        </div>
+
+        <div style={{ ...s.row2_1, marginBottom: 16 }}>
           <div style={s.field}>
             <label style={s.label}>Width (in)</label>
             <input
@@ -390,23 +441,32 @@ export default function App() {
             />
             <span style={s.hint}>table range: 48 – 480</span>
           </div>
-        </div>
-
-        <div style={s.row2b}>
           <div style={s.field}>
-            <label style={s.label}>Max Weight / Skid (lbs)</label>
+            <label style={s.label}>Max Wt / Skid (lbs)</label>
             <input
-              type="number" min="0" step="any" placeholder="e.g. 4000 (optional)"
+              type="number" min="0" step="any" placeholder="4000"
               value={maxWt}
               onChange={e => setMaxWt(e.target.value)}
               onFocus={() => setFocus('maxWt')}
               onBlur={() => setFocus(null)}
               style={inputStyle('maxWt')}
             />
-            <span style={s.hint}>leave blank if single skid</span>
           </div>
-          {/* spacer */}
-          <div />
+        </div>
+
+        <div style={{ maxWidth: 200 }}>
+          <div style={s.field}>
+            <label style={s.label}>Total Drop Lbs</label>
+            <input
+              type="number" min="0" step="any" placeholder="e.g. 800"
+              value={dropLbs}
+              onChange={e => setDropLbs(e.target.value)}
+              onFocus={() => setFocus('dropLbs')}
+              onBlur={() => setFocus(null)}
+              style={inputStyle('dropLbs')}
+            />
+            <span style={s.hint}>lbs of drop material being packed</span>
+          </div>
         </div>
 
         {/* Multi-skid warning */}
@@ -414,19 +474,22 @@ export default function App() {
           <div style={s.multiSkidBanner}>
             <span style={{ fontSize: 16 }}>⚠</span>
             <span>
-              <strong>{finalLbs.toLocaleString()} lbs</strong> exceeds {maxWtNum.toLocaleString()} lbs/skid —{' '}
-              <strong>{skidCount} skids</strong> required.
-              Pack cost will be multiplied by {skidCount}.
+              <strong>{dropLbsNum.toLocaleString()} lbs</strong> drop ÷ {maxWtNum.toLocaleString()} lbs/skid
+              {' '}= <strong>{skidCount} skids</strong> needed.
+              Pack cost × {skidCount}.
             </span>
           </div>
         )}
       </div>
 
-      {/* Weight */}
-      <div style={s.card}>
-        <div style={s.sectionLabel}>Weight</div>
-        <div style={s.row3}>
+      {/* ── CARD 2: Order Lbs ─────────────────────────────────────────── */}
+      <div style={s.cardGreen}>
+        <div style={s.sectionLabelGreen}>Order — Quote Line Lbs</div>
+        <div style={s.sectionDesc}>
+          The actual pieces being quoted. Per lb pack cost = total pack cost ÷ these lbs.
+        </div>
 
+        <div style={s.row3}>
           <div style={s.field}>
             <label style={s.label}>
               Pc Count
@@ -442,14 +505,13 @@ export default function App() {
               style={inputStyle('qty')}
             />
           </div>
-
           <div style={s.field}>
             <label style={s.label}>
               Lbs / Pc
               {autoField === 'lbsPc' && <span style={s.calcBadge}>calc</span>}
             </label>
             <input
-              type="number" min="0" step="any" placeholder="e.g. 40"
+              type="number" min="0" step="any" placeholder="e.g. 260"
               value={dispLbsPc}
               readOnly={autoField === 'lbsPc'}
               onChange={e => { setLbsPc(e.target.value); touch('lbsPc') }}
@@ -458,101 +520,69 @@ export default function App() {
               style={inputStyle('lbsPc')}
             />
           </div>
-
           <div style={s.field}>
             <label style={s.label}>
-              Total Lbs
-              {autoField === 'totalLbs' && <span style={s.calcBadge}>calc</span>}
+              Total Order Lbs
+              {autoField === 'orderLbs' && <span style={s.calcBadge}>calc</span>}
             </label>
             <input
-              type="number" min="0" step="any" placeholder="e.g. 2400"
-              value={dispTotalLbs}
-              readOnly={autoField === 'totalLbs'}
-              onChange={e => { setTotalLbs(e.target.value); touch('totalLbs') }}
-              onFocus={() => setFocus('totalLbs')}
+              type="number" min="0" step="any" placeholder="e.g. 260"
+              value={dispOrderLbs}
+              readOnly={autoField === 'orderLbs'}
+              onChange={e => { setOrderLbs(e.target.value); touch('orderLbs') }}
+              onFocus={() => setFocus('orderLbs')}
               onBlur={() => setFocus(null)}
-              style={inputStyle('totalLbs')}
+              style={inputStyle('orderLbs')}
             />
           </div>
-
         </div>
       </div>
 
-      {/* Result */}
+      {/* ── RESULT ───────────────────────────────────────────────────────── */}
       {result ? (
         <div style={s.resultCard}>
           <div style={s.resultHeader}>
             <span>Result</span>
             {multiSkid && (
-              <span style={s.skidsBadge}>{skidCount} skids</span>
+              <span style={s.skidsBadge}>{skidCount} skids × ${packPerSkid.toFixed(2)}</span>
             )}
           </div>
           <div style={s.resultBody}>
 
-            {/* Single skid: pack cost + per lb */}
-            {/* Multi skid: per-skid cost, skid count, total pack cost, per lb */}
-            {multiSkid ? (
-              <>
-                <div style={{ ...s.metricsGrid, gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: 16 }}>
-                  <div style={s.metric}>
-                    <div style={s.metricLabel}>Cost / Skid</div>
-                    <div style={s.metricVal}>${packPerSkid.toFixed(2)}</div>
-                  </div>
-                  <div style={s.metric}>
-                    <div style={s.metricLabel}>Skids Needed</div>
-                    <div style={s.metricVal}>{skidCount}</div>
-                    <div style={s.metricSub}>
-                      {finalLbs.toLocaleString()} lbs ÷ {maxWtNum.toLocaleString()} max
-                    </div>
-                  </div>
-                  <div style={s.metric}>
-                    <div style={s.metricLabel}>Total Pack Cost</div>
-                    <div style={s.metricVal}>${totalPackCost.toFixed(2)}</div>
-                    <div style={s.metricSub}>${packPerSkid.toFixed(2)} × {skidCount}</div>
-                  </div>
-                </div>
-                <hr style={s.divider} />
-                <div style={{ ...s.metricsGrid, gridTemplateColumns: '1fr 1fr', marginBottom: 16 }}>
-                  <div style={s.metric}>
-                    <div style={s.metricLabel}>Total Lbs</div>
-                    <div style={s.metricVal}>{finalLbs.toLocaleString()}</div>
-                  </div>
-                  {perLb !== null && (
-                    <div style={s.metric}>
-                      <div style={s.metricLabel}>Per Lb Pack Cost</div>
-                      <div style={s.metricValGreen}>${perLb.toFixed(4)}</div>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div style={{
-                ...s.metricsGrid,
-                gridTemplateColumns: perLb ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
-                marginBottom: 16,
-              }}>
+            {/* Pack cost breakdown */}
+            <div style={{ ...s.metricsGrid, gridTemplateColumns: multiSkid ? 'repeat(3, 1fr)' : '1fr 1fr', marginBottom: 16 }}>
+              <div style={s.metric}>
+                <div style={s.metricLabel}>Pack Cost / Skid</div>
+                <div style={s.metricVal}>${packPerSkid.toFixed(2)}</div>
+              </div>
+              {multiSkid && (
                 <div style={s.metric}>
-                  <div style={s.metricLabel}>Pack Cost</div>
-                  <div style={s.metricVal}>${packPerSkid.toFixed(2)}</div>
+                  <div style={s.metricLabel}>Skids Needed</div>
+                  <div style={s.metricVal}>{skidCount}</div>
+                  <div style={s.metricSub}>{dropLbsNum.toLocaleString()} drop lbs ÷ {maxWtNum.toLocaleString()}</div>
                 </div>
-                {finalLbs > 0 && (
-                  <div style={s.metric}>
-                    <div style={s.metricLabel}>Total Lbs</div>
-                    <div style={s.metricVal}>{finalLbs.toLocaleString()}</div>
-                  </div>
-                )}
-                {perLb !== null ? (
-                  <div style={s.metric}>
-                    <div style={s.metricLabel}>Per Lb Pack Cost</div>
-                    <div style={s.metricValGreen}>${perLb.toFixed(4)}</div>
-                  </div>
-                ) : (
-                  <div style={s.metric}>
-                    <div style={{ fontSize: 13, color: C.faint, paddingTop: 4 }}>
-                      Enter weight to calculate per lb cost
-                    </div>
-                  </div>
-                )}
+              )}
+              <div style={s.metric}>
+                <div style={s.metricLabel}>Total Pack Cost</div>
+                <div style={s.metricVal}>${totalPackCost.toFixed(2)}</div>
+                {multiSkid && <div style={s.metricSub}>${packPerSkid.toFixed(2)} × {skidCount}</div>}
+              </div>
+            </div>
+
+            <hr style={s.divider} />
+
+            {/* Per lb highlight */}
+            {perLb !== null ? (
+              <div style={s.perLbHighlight}>
+                <div style={s.perLbLabel}>Per Lb Pack Cost (Col Y)</div>
+                <div style={s.metricValGreen}>${perLb.toFixed(4)}</div>
+                <div style={s.metricSub}>
+                  ${totalPackCost.toFixed(2)} total pack ÷ {finalOrderLbs.toLocaleString()} order lbs
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: 13, color: C.faint, marginBottom: 16 }}>
+                Enter order lbs above to calculate per lb pack cost (Col Y).
               </div>
             )}
 
@@ -563,7 +593,7 @@ export default function App() {
         </div>
       ) : (
         <div style={s.resultCard}>
-          <div style={s.promptText}>Enter skid dimensions to calculate pack cost.</div>
+          <div style={s.promptText}>Enter drop skid dimensions to begin.</div>
         </div>
       )}
 
