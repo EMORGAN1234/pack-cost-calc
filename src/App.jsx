@@ -312,7 +312,7 @@ export default function App() {
       <div style={s.header}>
         <div style={s.redBar} />
         <span style={s.title}>Pack Cost Calculator</span>
-        <span style={s.subtitle}>Champagne Metals</span>
+        
       </div>
 
       {/* Skid Dimensions */}
