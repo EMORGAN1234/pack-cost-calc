@@ -406,12 +406,12 @@ export default function App() {
       <div style={s.header}>
         <div style={s.redBar} />
         <span style={s.title}>Pack Cost Calculator</span>
-        <span style={s.subtitle}>Champagne Metals</span>
+        
       </div>
 
       {/* ── CARD 1: Drop Skid Setup ────────────────────────────────────── */}
       <div style={s.card}>
-        <div style={s.sectionLabel}>Drop Skid Setup</div>
+        <div style={s.sectionLabel}>Skid Setup</div>
         <div style={s.sectionDesc}>
           The drop/remainder skid size and capacity — determines pack cost per skid and how many skids are needed.
         </div>
@@ -456,7 +456,7 @@ export default function App() {
 
         <div style={{ maxWidth: 200 }}>
           <div style={s.field}>
-            <label style={s.label}>Total Drop Lbs</label>
+            <label style={s.label}>Total Lbs</label>
             <input
               type="number" min="0" step="any" placeholder="e.g. 800"
               value={dropLbs}
@@ -465,7 +465,7 @@ export default function App() {
               onBlur={() => setFocus(null)}
               style={inputStyle('dropLbs')}
             />
-            <span style={s.hint}>lbs of drop material being packed</span>
+            <span style={s.hint}>lbs of material being packed</span>
           </div>
         </div>
 
