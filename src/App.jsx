@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Package, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
 // Pricing table  (rows = width, cols = length)
@@ -135,8 +134,8 @@ export default function App() {
           {/* ── HEADER CARD ───────────────────────────────────────────── */}
           <div className="glass-card rounded-2xl shadow-2xl p-5 mb-5 border-t-4 border-red-600">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg pulse-glow">
-                <Package className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg pulse-glow text-2xl">
+                📦
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">Pack Cost Calculator</h1>
@@ -244,7 +243,7 @@ export default function App() {
             {/* Multi-skid warning */}
             {multiSkid && (
               <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-300 text-amber-800 text-sm rounded-xl px-4 py-3 mt-4">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span className="text-base flex-shrink-0">⚠️</span>
                 <span>
                   <strong>{dropLbsNum.toLocaleString()} lbs</strong> drop ÷ {maxWtNum.toLocaleString()} lbs/skid
                   {' '}= <strong>{skidCount} skids</strong> needed. Pack cost × {skidCount}.
@@ -302,7 +301,7 @@ export default function App() {
                 )}
 
                 <div className={`flex items-center gap-2 pt-3 border-t border-neutral-200 text-sm ${note.exact ? 'text-emerald-600' : 'text-neutral-500'}`}>
-                  {note.exact ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <span>↑</span>}
+                  {note.exact ? <span>✓</span> : <span>↑</span>}
                   <span>{note.text}</span>
                 </div>
               </div>
