@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Package, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 // ---------------------------------------------------------------------------
 // Pricing table  (rows = width, cols = length)
@@ -37,274 +38,6 @@ function getPrice(w, len) {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Colors
-// ---------------------------------------------------------------------------
-const C = {
-  bg:         '#141414',
-  surface:    '#ffffff',
-  elevated:   '#f5f5f5',
-  auto:       '#eef6ff',
-  autoBorder: '#a8cff5',
-  warn:       '#fff8ee',
-  warnBorder: '#f5c842',
-  warnText:   '#8a6000',
-  border:     '#e0e0e0',
-  red:        '#c0392b',
-  redMuted:   'rgba(192,57,43,0.08)',
-  text:       '#1a1a1a',
-  muted:      '#666',
-  faint:      '#999',
-  green:      '#1a9e4a',
-  greenMuted: 'rgba(26,158,74,0.08)',
-}
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-const s = {
-  page: {
-    minHeight: '100vh',
-    background: C.bg,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '0 16px 60px',
-  },
-  header: {
-    width: '100%',
-    maxWidth: 640,
-    borderBottom: '1px solid #2a2a2a',
-    padding: '20px 0 16px',
-    marginBottom: 32,
-    display: 'flex',
-    alignItems: 'baseline',
-    gap: 12,
-  },
-  redBar: {
-    width: 3,
-    height: 22,
-    background: C.red,
-    borderRadius: 2,
-    marginRight: 4,
-    flexShrink: 0,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 600,
-    color: '#ffffff',
-    letterSpacing: '0.02em',
-  },
-  subtitle: {
-    fontSize: 13,
-    color: '#888',
-  },
-  card: {
-    width: '100%',
-    maxWidth: 640,
-    background: C.surface,
-    border: `1px solid ${C.border}`,
-    borderRadius: 8,
-    padding: '22px 26px',
-    marginBottom: 14,
-  },
-  cardGreen: {
-    width: '100%',
-    maxWidth: 640,
-    background: C.surface,
-    border: `1px solid #b2dfc2`,
-    borderRadius: 8,
-    padding: '22px 26px',
-    marginBottom: 14,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    color: C.red,
-    marginBottom: 4,
-  },
-  sectionLabelGreen: {
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    color: C.green,
-    marginBottom: 4,
-  },
-  sectionDesc: {
-    fontSize: 12,
-    color: C.muted,
-    marginBottom: 14,
-    lineHeight: 1.5,
-  },
-  row2: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 16,
-  },
-  row3: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr 1fr',
-    gap: 16,
-  },
-  row2_1: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr 160px',
-    gap: 16,
-  },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-  },
-  label: {
-    fontSize: 12,
-    color: C.muted,
-    fontWeight: 500,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-  },
-  calcBadge: {
-    fontSize: 10,
-    fontWeight: 600,
-    letterSpacing: '0.06em',
-    color: '#1a6bbf',
-    background: '#ddeeff',
-    borderRadius: 3,
-    padding: '1px 5px',
-    textTransform: 'uppercase',
-  },
-  hint: {
-    fontSize: 11,
-    color: C.faint,
-    marginTop: 2,
-  },
-  multiSkidBanner: {
-    background: C.warn,
-    border: `1px solid ${C.warnBorder}`,
-    borderRadius: 6,
-    padding: '10px 14px',
-    marginTop: 14,
-    fontSize: 13,
-    color: C.warnText,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    lineHeight: 1.5,
-  },
-  resultCard: {
-    width: '100%',
-    maxWidth: 640,
-    background: C.surface,
-    border: `1px solid ${C.border}`,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  resultHeader: {
-    background: C.redMuted,
-    borderBottom: `1px solid ${C.border}`,
-    padding: '10px 26px',
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    color: C.red,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  skidsBadge: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: C.warnText,
-    background: C.warn,
-    border: `1px solid ${C.warnBorder}`,
-    borderRadius: 4,
-    padding: '2px 10px',
-  },
-  resultBody: {
-    padding: '20px 26px',
-  },
-  metricsGrid: {
-    display: 'grid',
-    gap: 20,
-    marginBottom: 16,
-  },
-  metric: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-  },
-  metricLabel: {
-    fontSize: 11,
-    color: C.muted,
-    textTransform: 'uppercase',
-    letterSpacing: '0.07em',
-  },
-  metricVal: {
-    fontSize: 24,
-    fontWeight: 600,
-    color: C.text,
-  },
-  metricValGreen: {
-    fontSize: 28,
-    fontWeight: 700,
-    color: C.green,
-  },
-  metricSub: {
-    fontSize: 11,
-    color: C.muted,
-    marginTop: 2,
-  },
-  divider: {
-    border: 'none',
-    borderTop: `1px solid ${C.border}`,
-    margin: '16px 0',
-  },
-  perLbHighlight: {
-    background: C.greenMuted,
-    border: `1px solid #b2dfc2`,
-    borderRadius: 8,
-    padding: '16px 20px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 4,
-    marginBottom: 16,
-  },
-  perLbLabel: {
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '0.1em',
-    textTransform: 'uppercase',
-    color: C.green,
-  },
-  lookupNote: {
-    borderTop: `1px solid ${C.border}`,
-    paddingTop: 12,
-    fontSize: 12,
-    color: C.muted,
-    lineHeight: 1.6,
-  },
-  lookupNoteExact: {
-    borderTop: `1px solid ${C.border}`,
-    paddingTop: 12,
-    fontSize: 12,
-    color: C.green,
-    lineHeight: 1.6,
-  },
-  promptText: {
-    padding: '20px 26px',
-    fontSize: 13,
-    color: C.faint,
-  },
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 export default function App() {
 
   // ---- Skid dimensions + max weight ---------------------------------------
@@ -321,8 +54,6 @@ export default function App() {
   const [lbsPc,    setLbsPc]    = useState('')
   const [orderLbs, setOrderLbs] = useState('')
   const [editOrder, setEditOrder] = useState(['qty'])
-
-  const [focus, setFocus] = useState(null)
 
   // ---- Order lbs dynamic logic --------------------------------------------
   const ALL_FIELDS = ['qty', 'lbsPc', 'orderLbs']
@@ -381,222 +112,209 @@ export default function App() {
 
   const note = noteText()
 
-  // ---- Input style --------------------------------------------------------
-  function inputStyle(field) {
-    const isAuto = autoField === field
-    return {
-      background:   isAuto ? C.auto    : C.elevated,
-      border:       `1px solid ${focus === field ? C.red : isAuto ? C.autoBorder : C.border}`,
-      borderRadius: 5,
-      color:        isAuto ? '#1a6bbf' : C.text,
-      fontSize:     15,
-      fontWeight:   isAuto ? 500       : 400,
-      padding:      '9px 12px',
-      outline:      'none',
-      width:        '100%',
-      transition:   'border-color 0.15s',
-      cursor:       isAuto ? 'default' : 'text',
-    }
-  }
+  const inputBase = "w-full px-3 py-2.5 text-sm rounded-xl border focus:outline-none focus:ring-2 focus:ring-red-500/40 transition-all"
+  const inputNormal = `${inputBase} bg-neutral-50 border-neutral-200 text-neutral-900 focus:border-red-400`
+  const inputAuto = `${inputBase} bg-blue-50 border-blue-200 text-blue-700 font-medium cursor-default`
 
   return (
-    <div style={s.page}>
+    <>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .glass-card { background: rgba(255,255,255,0.97); backdrop-filter: blur(20px); }
+        .pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+        @keyframes pulse-glow { 0%,100% { box-shadow: 0 0 5px rgba(220,38,38,0.3); } 50% { box-shadow: 0 0 20px rgba(220,38,38,0.6); } }
+      `}} />
 
-      {/* Header */}
-      <div style={s.header}>
-        <div style={s.redBar} />
-        <span style={s.title}>Pack Cost Calculator</span>
-        
-      </div>
+      <div className="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-800 to-black p-4 sm:p-6"
+           style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className="max-w-3xl mx-auto">
 
-      {/* ── CARD 1: Drop Skid Setup ────────────────────────────────────── */}
-      <div style={s.card}>
-        <div style={s.sectionLabel}>Skid Setup</div>
-        <div style={s.sectionDesc}>
-          The drop/remainder skid size and capacity — determines pack cost per skid and how many skids are needed.
-        </div>
+          {/* ── HEADER CARD ───────────────────────────────────────────── */}
+          <div className="glass-card rounded-2xl shadow-2xl p-5 mb-5 border-t-4 border-red-600">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center shadow-lg pulse-glow">
+                <Package className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">Pack Cost Calculator</h1>
+                <p className="text-sm text-neutral-500 font-medium">Skid pack cost &amp; per lb quote pricing</p>
+              </div>
+            </div>
+          </div>
 
-        <div style={{ ...s.row2_1, marginBottom: 16 }}>
-          <div style={s.field}>
-            <label style={s.label}>Width (in)</label>
-            <input
-              type="number" min="0" step="any" placeholder="e.g. 23"
-              value={width}
-              onChange={e => setWidth(e.target.value)}
-              onFocus={() => setFocus('w')}
-              onBlur={() => setFocus(null)}
-              style={inputStyle('w')}
-            />
-            <span style={s.hint}>table range: 24 – 96</span>
-          </div>
-          <div style={s.field}>
-            <label style={s.label}>Length (in)</label>
-            <input
-              type="number" min="0" step="any" placeholder="e.g. 131.52"
-              value={length}
-              onChange={e => setLength(e.target.value)}
-              onFocus={() => setFocus('l')}
-              onBlur={() => setFocus(null)}
-              style={inputStyle('l')}
-            />
-            <span style={s.hint}>table range: 48 – 480</span>
-          </div>
-          <div style={s.field}>
-            <label style={s.label}>Max Wt / Skid (lbs)</label>
-            <input
-              type="number" min="0" step="any" placeholder="4000"
-              value={maxWt}
-              onChange={e => setMaxWt(e.target.value)}
-              onFocus={() => setFocus('maxWt')}
-              onBlur={() => setFocus(null)}
-              style={inputStyle('maxWt')}
-            />
-          </div>
-        </div>
+          {/* ── SKID SETUP CARD ──────────────────────────────────────── */}
+          <div className="glass-card rounded-2xl shadow-2xl p-5 mb-5 border-t-4 border-red-600">
+            <div className="text-xs font-bold uppercase tracking-wider text-red-600 mb-1">Skid Setup</div>
+            <p className="text-sm text-neutral-500 mb-4">
+              The drop/remainder skid size and capacity — determines pack cost per skid and how many skids are needed.
+            </p>
 
-        <div style={{ maxWidth: 200 }}>
-          <div style={s.field}>
-            <label style={s.label}>Total Lbs</label>
-            <input
-              type="number" min="0" step="any" placeholder="e.g. 800"
-              value={dropLbs}
-              onChange={e => setDropLbs(e.target.value)}
-              onFocus={() => setFocus('dropLbs')}
-              onBlur={() => setFocus(null)}
-              style={inputStyle('dropLbs')}
-            />
-            <span style={s.hint}>lbs of material being packed</span>
-          </div>
-        </div>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Width (in)</label>
+                <input
+                  type="number" min="0" step="any" placeholder="e.g. 23"
+                  value={width}
+                  onChange={e => setWidth(e.target.value)}
+                  className={inputNormal}
+                />
+                <span className="block text-[11px] text-neutral-400 mt-1">table range: 24 – 96</span>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Length (in)</label>
+                <input
+                  type="number" min="0" step="any" placeholder="e.g. 131.52"
+                  value={length}
+                  onChange={e => setLength(e.target.value)}
+                  className={inputNormal}
+                />
+                <span className="block text-[11px] text-neutral-400 mt-1">table range: 48 – 480</span>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Max Wt / Skid (lbs)</label>
+                <input
+                  type="number" min="0" step="any" placeholder="4000"
+                  value={maxWt}
+                  onChange={e => setMaxWt(e.target.value)}
+                  className={inputNormal}
+                />
+              </div>
+            </div>
 
-        {/* Multi-skid warning */}
-        {multiSkid && (
-          <div style={s.multiSkidBanner}>
-            <span style={{ fontSize: 16 }}>⚠</span>
-            <span>
-              <strong>{dropLbsNum.toLocaleString()} lbs</strong> drop ÷ {maxWtNum.toLocaleString()} lbs/skid
-              {' '}= <strong>{skidCount} skids</strong> needed.
-              Pack cost × {skidCount}.
-            </span>
-          </div>
-        )}
-      </div>
+            <div className="grid grid-cols-3 gap-4 mb-2">
+              <div>
+                <label className="block text-xs font-semibold text-neutral-600 mb-1.5">Total Lbs</label>
+                <input
+                  type="number" min="0" step="any" placeholder="e.g. 800"
+                  value={dropLbs}
+                  onChange={e => setDropLbs(e.target.value)}
+                  className={inputNormal}
+                />
+                <span className="block text-[11px] text-neutral-400 mt-1">lbs of material being packed</span>
+              </div>
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-neutral-600 mb-1.5">
+                  Pc Count
+                  {autoField === 'qty' && <span className="text-[9px] font-bold uppercase tracking-wide text-blue-600 bg-blue-100 rounded px-1.5 py-0.5">calc</span>}
+                </label>
+                <input
+                  type="number" min="0" step="1" placeholder="1"
+                  value={dispQty}
+                  readOnly={autoField === 'qty'}
+                  onChange={e => { setQty(e.target.value); touch('qty') }}
+                  className={autoField === 'qty' ? inputAuto : inputNormal}
+                />
+              </div>
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-neutral-600 mb-1.5">
+                  Lbs / Pc
+                  {autoField === 'lbsPc' && <span className="text-[9px] font-bold uppercase tracking-wide text-blue-600 bg-blue-100 rounded px-1.5 py-0.5">calc</span>}
+                </label>
+                <input
+                  type="number" min="0" step="any" placeholder="e.g. 260"
+                  value={dispLbsPc}
+                  readOnly={autoField === 'lbsPc'}
+                  onChange={e => { setLbsPc(e.target.value); touch('lbsPc') }}
+                  className={autoField === 'lbsPc' ? inputAuto : inputNormal}
+                />
+              </div>
+            </div>
 
-      {/* ── CARD 2: Order Lbs ─────────────────────────────────────────── */}
-      <div style={s.cardGreen}>
-        <div style={s.sectionLabelGreen}>Order — Quote Line Lbs</div>
-        <div style={s.sectionDesc}>
-          The actual pieces being quoted. Per lb pack cost = total pack cost ÷ these lbs.
-        </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div></div>
+              <div></div>
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-neutral-600 mb-1.5">
+                  Total Order Lbs
+                  {autoField === 'orderLbs' && <span className="text-[9px] font-bold uppercase tracking-wide text-blue-600 bg-blue-100 rounded px-1.5 py-0.5">calc</span>}
+                </label>
+                <input
+                  type="number" min="0" step="any" placeholder="e.g. 260"
+                  value={dispOrderLbs}
+                  readOnly={autoField === 'orderLbs'}
+                  onChange={e => { setOrderLbs(e.target.value); touch('orderLbs') }}
+                  className={autoField === 'orderLbs' ? inputAuto : inputNormal}
+                />
+              </div>
+            </div>
 
-        <div style={s.row3}>
-          <div style={s.field}>
-            <label style={s.label}>
-              Pc Count
-              {autoField === 'qty' && <span style={s.calcBadge}>calc</span>}
-            </label>
-            <input
-              type="number" min="0" step="1" placeholder="1"
-              value={dispQty}
-              readOnly={autoField === 'qty'}
-              onChange={e => { setQty(e.target.value); touch('qty') }}
-              onFocus={() => setFocus('qty')}
-              onBlur={() => setFocus(null)}
-              style={inputStyle('qty')}
-            />
-          </div>
-          <div style={s.field}>
-            <label style={s.label}>
-              Lbs / Pc
-              {autoField === 'lbsPc' && <span style={s.calcBadge}>calc</span>}
-            </label>
-            <input
-              type="number" min="0" step="any" placeholder="e.g. 260"
-              value={dispLbsPc}
-              readOnly={autoField === 'lbsPc'}
-              onChange={e => { setLbsPc(e.target.value); touch('lbsPc') }}
-              onFocus={() => setFocus('lbsPc')}
-              onBlur={() => setFocus(null)}
-              style={inputStyle('lbsPc')}
-            />
-          </div>
-          <div style={s.field}>
-            <label style={s.label}>
-              Total Order Lbs
-              {autoField === 'orderLbs' && <span style={s.calcBadge}>calc</span>}
-            </label>
-            <input
-              type="number" min="0" step="any" placeholder="e.g. 260"
-              value={dispOrderLbs}
-              readOnly={autoField === 'orderLbs'}
-              onChange={e => { setOrderLbs(e.target.value); touch('orderLbs') }}
-              onFocus={() => setFocus('orderLbs')}
-              onBlur={() => setFocus(null)}
-              style={inputStyle('orderLbs')}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── RESULT ───────────────────────────────────────────────────────── */}
-      {result ? (
-        <div style={s.resultCard}>
-          <div style={s.resultHeader}>
-            <span>Result</span>
+            {/* Multi-skid warning */}
             {multiSkid && (
-              <span style={s.skidsBadge}>{skidCount} skids × ${packPerSkid.toFixed(2)}</span>
-            )}
-          </div>
-          <div style={s.resultBody}>
-
-            {/* Pack cost breakdown */}
-            <div style={{ ...s.metricsGrid, gridTemplateColumns: multiSkid ? 'repeat(3, 1fr)' : '1fr 1fr', marginBottom: 16 }}>
-              <div style={s.metric}>
-                <div style={s.metricLabel}>Pack Cost / Skid</div>
-                <div style={s.metricVal}>${packPerSkid.toFixed(2)}</div>
-              </div>
-              {multiSkid && (
-                <div style={s.metric}>
-                  <div style={s.metricLabel}>Skids Needed</div>
-                  <div style={s.metricVal}>{skidCount}</div>
-                  <div style={s.metricSub}>{dropLbsNum.toLocaleString()} drop lbs ÷ {maxWtNum.toLocaleString()}</div>
-                </div>
-              )}
-              <div style={s.metric}>
-                <div style={s.metricLabel}>Total Pack Cost</div>
-                <div style={s.metricVal}>${totalPackCost.toFixed(2)}</div>
-                {multiSkid && <div style={s.metricSub}>${packPerSkid.toFixed(2)} × {skidCount}</div>}
-              </div>
-            </div>
-
-            <hr style={s.divider} />
-
-            {/* Per lb highlight */}
-            {perLb !== null ? (
-              <div style={s.perLbHighlight}>
-                <div style={s.perLbLabel}>Per Lb Pack Cost (Col Y)</div>
-                <div style={s.metricValGreen}>${perLb.toFixed(4)}</div>
-                <div style={s.metricSub}>
-                  ${totalPackCost.toFixed(2)} total pack ÷ {finalOrderLbs.toLocaleString()} order lbs
-                </div>
-              </div>
-            ) : (
-              <div style={{ fontSize: 13, color: C.faint, marginBottom: 16 }}>
-                Enter order lbs above to calculate per lb pack cost (Col Y).
+              <div className="flex items-center gap-2.5 bg-amber-50 border border-amber-300 text-amber-800 text-sm rounded-xl px-4 py-3 mt-4">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>
+                  <strong>{dropLbsNum.toLocaleString()} lbs</strong> drop ÷ {maxWtNum.toLocaleString()} lbs/skid
+                  {' '}= <strong>{skidCount} skids</strong> needed. Pack cost × {skidCount}.
+                </span>
               </div>
             )}
-
-            <div style={note.exact ? s.lookupNoteExact : s.lookupNote}>
-              {note.exact ? '✓ ' : '↑ '}{note.text}
-            </div>
           </div>
-        </div>
-      ) : (
-        <div style={s.resultCard}>
-          <div style={s.promptText}>Enter drop skid dimensions to begin.</div>
-        </div>
-      )}
 
-    </div>
+          {/* ── RESULT CARD ──────────────────────────────────────────── */}
+          {result ? (
+            <div className="glass-card rounded-2xl shadow-2xl overflow-hidden border-t-4 border-red-600">
+              <div className="flex items-center justify-between px-5 py-3 bg-red-50 border-b border-red-100">
+                <span className="text-xs font-bold uppercase tracking-wider text-red-600">Result</span>
+                {multiSkid && (
+                  <span className="text-xs font-bold text-amber-800 bg-amber-100 border border-amber-300 rounded-full px-3 py-1">
+                    {skidCount} skids × ${packPerSkid.toFixed(2)}
+                  </span>
+                )}
+              </div>
+
+              <div className="p-5">
+                <div className={`grid ${multiSkid ? 'grid-cols-3' : 'grid-cols-2'} gap-5 mb-5`}>
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400 mb-1">Pack Cost / Skid</div>
+                    <div className="text-2xl font-extrabold text-neutral-900">${packPerSkid.toFixed(2)}</div>
+                  </div>
+                  {multiSkid && (
+                    <div>
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400 mb-1">Skids Needed</div>
+                      <div className="text-2xl font-extrabold text-neutral-900">{skidCount}</div>
+                      <div className="text-[11px] text-neutral-400 mt-0.5">{dropLbsNum.toLocaleString()} drop lbs ÷ {maxWtNum.toLocaleString()}</div>
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400 mb-1">Total Pack Cost</div>
+                    <div className="text-2xl font-extrabold text-neutral-900">${totalPackCost.toFixed(2)}</div>
+                    {multiSkid && <div className="text-[11px] text-neutral-400 mt-0.5">${packPerSkid.toFixed(2)} × {skidCount}</div>}
+                  </div>
+                </div>
+
+                <hr className="border-neutral-200 mb-5" />
+
+                {perLb !== null ? (
+                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200 rounded-xl px-5 py-4 mb-5">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 mb-1">Per Lb Pack Cost (Col Y)</div>
+                    <div className="text-3xl font-extrabold text-emerald-700">${perLb.toFixed(4)}</div>
+                    <div className="text-[11px] text-neutral-500 mt-1">
+                      ${totalPackCost.toFixed(2)} total pack ÷ {finalOrderLbs.toLocaleString()} order lbs
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-neutral-400 mb-5">
+                    Enter order lbs above to calculate per lb pack cost (Col Y).
+                  </div>
+                )}
+
+                <div className={`flex items-center gap-2 pt-3 border-t border-neutral-200 text-sm ${note.exact ? 'text-emerald-600' : 'text-neutral-500'}`}>
+                  {note.exact ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <span>↑</span>}
+                  <span>{note.text}</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="glass-card rounded-2xl shadow-2xl p-5 border-t-4 border-red-600">
+              <p className="text-sm text-neutral-400">Enter drop skid dimensions to begin.</p>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </>
   )
 }
