@@ -143,17 +143,6 @@ const s = {
     alignItems: 'center',
     gap: 6,
   },
-  calcBadge: {
-    fontSize: 9,
-    fontWeight: 700,
-    letterSpacing: '0.06em',
-    textTransform: 'uppercase',
-    color: C.blue,
-    background: C.blueBg,
-    border: `1px solid ${C.blueBorder}`,
-    borderRadius: 4,
-    padding: '1px 6px',
-  },
   hint: {
     fontSize: 11,
     color: C.faint,
@@ -232,31 +221,6 @@ const s = {
     border: 'none',
     borderTop: `1px solid ${C.border}`,
     margin: '0 0 20px',
-  },
-  perLbBox: {
-    background: C.greenBg,
-    border: `1px solid ${C.greenBorder}`,
-    borderRadius: 12,
-    padding: '16px 20px',
-    marginBottom: 20,
-  },
-  perLbLabel: {
-    fontSize: 11,
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    textTransform: 'uppercase',
-    color: C.green,
-    marginBottom: 4,
-  },
-  perLbVal: {
-    fontSize: 30,
-    fontWeight: 800,
-    color: C.green,
-  },
-  perLbSub: {
-    fontSize: 11,
-    color: C.muted,
-    marginTop: 4,
   },
   promptText: {
     fontSize: 13,
@@ -455,20 +419,6 @@ export default function App() {
                 </div>
 
                 <hr style={s.divider} />
-
-                {perLb !== null ? (
-                  <div style={s.perLbBox}>
-                    <div style={s.perLbLabel}>Per Lb Pack Cost (Col Y)</div>
-                    <div style={s.perLbVal}>${perLb.toFixed(4)}</div>
-                    <div style={s.perLbSub}>
-                      ${totalPackCost.toFixed(2)} total pack ÷ {finalOrderLbs.toLocaleString()} order lbs
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ ...s.promptText, marginBottom: 20 }}>
-                    Enter order lbs above to calculate per lb pack cost (Col Y).
-                  </div>
-                )}
 
                 <div style={{ ...s.noteRow, color: note.exact ? C.green : C.muted }}>
                   <span>{note.exact ? '✓' : '↑'}</span>
