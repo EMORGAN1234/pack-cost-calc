@@ -3,17 +3,17 @@ import { useState } from 'react'
 // ---------------------------------------------------------------------------
 // Pricing table  (rows = width, cols = length)
 // ---------------------------------------------------------------------------
-const WIDTHS  = [24, 36, 48, 60, 72, 85, 96]
+const WIDTHS  = [24, 36, 48, 60, 72, 84, 96]
 const LENGTHS = [48, 96, 120, 144, 192, 240, 300, 360, 420, 480]
 
 const TABLE = {
-  24: [24,  33,  41,  45,  113, 117, 137, 184, 209, 216],
-  36: [31,  43,  52,  59,  123, 127, 146, 194, 228, 235],
-  48: [33,  46,  56,  63,  127, 134, 154, 204, 238, 247],
-  60: [36,  48,  59,  67,  154, 161, 188, 238, 294, 304],
-  72: [39,  59,  73,  82,  164, 172, 202, 296, 317, 329],
-  85: [40,  61,  76,  85,  167, 176, 207, 302, 324, 337],
-  96: [49,  70,  88,  99,  195, 206, 242, 360, 386, 400],
+  24: [26,  34,  42,  47,  124, 127, 151, 204, 211, 239],
+  36: [32,  45,  55,  61,  135, 140, 161, 216, 230, 261],
+  48: [34,  48,  59,  66,  138, 146, 170, 226, 239, 274],
+  60: [37,  50,  62,  70,  146, 154, 209, 264, 328, 339],
+  72: [41,  56,  70,  78,  157, 166, 225, 331, 356, 370],
+  84: [43,  64,  80,  90,  185, 195, 230, 338, 364, 378],
+  96: [51,  74,  93,  104, 216, 227, 270, 402, 432, 448],
 }
 
 function ceilIndex(arr, val) {
@@ -299,42 +299,7 @@ export default function App() {
   // ---- Drop lbs (drives skid count) ---------------------------------------
   const [dropLbs, setDropLbs] = useState('')
 
-  // ---- Order lbs (drives per lb cost for quote) ---------------------------
-  // Dynamic: fill any 2 of qty / lbsPc / totalLbs
-  const [qty,      setQty]      = useState('1')
-  const [lbsPc,    setLbsPc]    = useState('')
-  const [orderLbs, setOrderLbs] = useState('')
-  const [editOrder, setEditOrder] = useState(['qty'])
-
   const [focus, setFocus] = useState(null)
-
-  // ---- Order lbs dynamic logic --------------------------------------------
-  const ALL_FIELDS = ['qty', 'lbsPc', 'orderLbs']
-  const autoField  = editOrder.length >= 2
-    ? ALL_FIELDS.find(f => !editOrder.slice(0, 2).includes(f))
-    : null
-
-  const qNum = parseFloat(qty)      || 0
-  const lNum = parseFloat(lbsPc)    || 0
-  const oNum = parseFloat(orderLbs) || 0
-
-  let dispQty      = qty
-  let dispLbsPc    = lbsPc
-  let dispOrderLbs = orderLbs
-
-  if (autoField === 'orderLbs' && qNum > 0 && lNum > 0) {
-    dispOrderLbs = (qNum * lNum).toFixed(2)
-  } else if (autoField === 'lbsPc' && qNum > 0 && oNum > 0) {
-    dispLbsPc = (oNum / qNum).toFixed(4)
-  } else if (autoField === 'qty' && lNum > 0 && oNum > 0) {
-    dispQty = (oNum / lNum).toFixed(2)
-  }
-
-  const finalOrderLbs = parseFloat(dispOrderLbs) || 0
-
-  function touch(field) {
-    setEditOrder(prev => [field, ...prev.filter(f => f !== field)].slice(0, 2))
-  }
 
   // ---- Skid count (based on drop lbs) -------------------------------------
   const dropLbsNum = parseFloat(dropLbs) || 0
@@ -351,7 +316,6 @@ export default function App() {
   const result        = hasSize ? getPrice(w, len) : null
   const packPerSkid   = result ? result.price : 0
   const totalPackCost = packPerSkid * skidCount
-  const perLb         = result && finalOrderLbs > 0 ? totalPackCost / finalOrderLbs : null
 
   function noteText() {
     if (!result) return null
@@ -435,69 +399,17 @@ export default function App() {
               </div>
             </div>
 
-            <div style={s.row3}>
-              <div style={s.field}>
-                <label style={s.label}>Total Lbs</label>
-                <input
-                  type="number" min="0" step="any" placeholder="e.g. 800"
-                  value={dropLbs}
-                  onChange={e => setDropLbs(e.target.value)}
-                  onFocus={() => setFocus('dropLbs')}
-                  onBlur={() => setFocus(null)}
-                  style={inputStyle(false, focus === 'dropLbs')}
-                />
-                <span style={s.hint}>lbs of material being packed</span>
-              </div>
-              <div style={s.field}>
-                <label style={s.label}>
-                  Pc Count
-                  {autoField === 'qty' && <span style={s.calcBadge}>calc</span>}
-                </label>
-                <input
-                  type="number" min="0" step="1" placeholder="1"
-                  value={dispQty}
-                  readOnly={autoField === 'qty'}
-                  onChange={e => { setQty(e.target.value); touch('qty') }}
-                  onFocus={() => setFocus('qty')}
-                  onBlur={() => setFocus(null)}
-                  style={inputStyle(autoField === 'qty', focus === 'qty')}
-                />
-              </div>
-              <div style={s.field}>
-                <label style={s.label}>
-                  Lbs / Pc
-                  {autoField === 'lbsPc' && <span style={s.calcBadge}>calc</span>}
-                </label>
-                <input
-                  type="number" min="0" step="any" placeholder="e.g. 260"
-                  value={dispLbsPc}
-                  readOnly={autoField === 'lbsPc'}
-                  onChange={e => { setLbsPc(e.target.value); touch('lbsPc') }}
-                  onFocus={() => setFocus('lbsPc')}
-                  onBlur={() => setFocus(null)}
-                  style={inputStyle(autoField === 'lbsPc', focus === 'lbsPc')}
-                />
-              </div>
-            </div>
-
-            <div style={{ ...s.row3, marginBottom: 0 }}>
-              <div />
-              <div />
-              <div style={s.field}>
-                <label style={s.label}>
-                  Total Order Lbs
-                  {autoField === 'orderLbs' && <span style={s.calcBadge}>calc</span>}
-                </label>
-                <input
-                  type="number" min="0" step="any" placeholder="e.g. 260"
-                  value={dispOrderLbs}
-                  readOnly={autoField === 'orderLbs'}
-                  onChange={e => { setOrderLbs(e.target.value); touch('orderLbs') }}
-                  onFocus={() => setFocus('orderLbs')}
-                  onBlur={() => setFocus(null)}
-                  style={inputStyle(autoField === 'orderLbs', focus === 'orderLbs')}
-                />
-              </div>
+            <div style={s.field}>
+              <label style={s.label}>Total Lbs</label>
+              <input
+                type="number" min="0" step="any" placeholder="e.g. 800"
+                value={dropLbs}
+                onChange={e => setDropLbs(e.target.value)}
+                onFocus={() => setFocus('dropLbs')}
+                onBlur={() => setFocus(null)}
+                style={inputStyle(false, focus === 'dropLbs')}
+              />
+              <span style={s.hint}>lbs of material being packed</span>
             </div>
 
             {/* Multi-skid warning */}
