@@ -72,6 +72,78 @@ const fmtN = (n, dec = 1) =>
   parseFloat(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })
 
 // ---------------------------------------------------------------------------
+// Coil geometry (ported from Shipping Dimensions Calculator)
+// ---------------------------------------------------------------------------
+const getSaddleWidth = od => {
+  if (od <= 32) return 28
+  if (od <= 40) return 34
+  if (od <= 48) return 38
+  if (od <= 56) return 42
+  if (od <= 66) return 46
+  if (od <= 76) return 52
+  return 58
+}
+
+function coilGeom({ alloy, thickness, width, weight, coreId }) {
+  const density = getDensity(alloy)
+  const t = parseFloat(thickness), w = parseFloat(width)
+  const lbs = parseFloat(weight), id = parseFloat(coreId)
+  if (!t || !w || !lbs || !id || t <= 0 || w <= 0 || lbs <= 0 || id <= 0) return null
+  const volIn3   = lbs / density
+  const lengthIn = volIn3 / (t * w)
+  const lengthFt = lengthIn / 12
+  const od       = Math.sqrt((4 * lengthIn * t) / Math.PI + id * id)
+  if (od <= id) return { error: 'Calculated OD is at or below the core ID. Check gauge, width, or weight.' }
+  return { density, volIn3, lengthIn, lengthFt, od, w, lbs, id }
+}
+
+// How many coils fit on one skid. Auto mode caps on weight AND the dimension
+// that grows with each coil: row length when eye to side, stack height when
+// eye to sky. The smaller wins.
+function coilCount(coilIn, geom) {
+  const orient = coilIn.orient === 'sky' ? 'sky' : 'side'
+  if (!coilIn.autoCoils) {
+    let n = parseInt(coilIn.coilsPerSkid)
+    if (!n || n < 1) n = 1
+    return { n, orient, limit: 'manual' }
+  }
+  const w = geom.w, lbs = geom.lbs
+  const maxWt = parseFloat(coilIn.maxSkidWt) || 0
+  const byWt  = (maxWt > 0 && lbs > 0) ? Math.floor(maxWt / lbs) : 9999
+  let byDim = 9999
+  const dimName = orient === 'sky' ? 'height' : 'row length'
+  if (orient === 'sky') {
+    const maxH = parseFloat(coilIn.maxStackH) || 0
+    if (maxH > 0 && w > 0) byDim = Math.floor((maxH - 6) / w)
+  } else {
+    const maxLen = parseFloat(coilIn.maxRowLen) || 0
+    if (maxLen > 0 && w > 0) byDim = Math.floor((maxLen - 4) / w)
+  }
+  const n = Math.max(1, Math.min(byWt, byDim))
+  const limit = byWt <= byDim ? 'weight' : dimName
+  return { n, orient, limit, byWt, byDim }
+}
+
+// Skid footprint for N coils in one orientation.
+function coilFootprint(orient, od, coilW, N) {
+  const skidH = 6
+  if (orient === 'side') {
+    return {
+      footLen: N * coilW + 4,          // 2" clearance each end
+      footWid: getSaddleWidth(od),
+      totalH:  od + skidH,
+      skidH,
+    }
+  }
+  return {
+    footLen: od,
+    footWid: od,
+    totalH:  N * coilW + skidH,
+    skidH,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Extrusion profile geometry (ported from Shipping Dimensions Calculator)
 // Each shape derives a metal cross section area (in2) and a per piece outer
 // bounding box (pieceW x pieceH). Weight per ft is area x density x 12.
@@ -208,6 +280,8 @@ const C = {
   amberBg:    '#fffbeb',
   amberBorder:'#fcd34d',
   green:      '#047857',
+  redBg:      '#fef2f2',
+  redBorder:  '#fecaca',
 }
 
 const s = {
@@ -267,6 +341,11 @@ const s = {
   infoBanner: {
     display: 'flex', alignItems: 'center', gap: 10,
     background: C.blueBg, border: `1px solid ${C.blueBorder}`, color: C.blue,
+    borderRadius: 10, padding: '12px 16px', fontSize: 13, lineHeight: 1.5, marginTop: 16,
+  },
+  errBanner: {
+    display: 'flex', alignItems: 'center', gap: 10,
+    background: C.redBg, border: `1px solid ${C.redBorder}`, color: C.redDark,
     borderRadius: 10, padding: '12px 16px', fontSize: 13, lineHeight: 1.5, marginTop: 16,
   },
   resultCard: {
@@ -329,7 +408,7 @@ function selectStyle(focused) {
 
 function tabStyle(active) {
   return {
-    padding: '10px 18px', fontSize: 13, fontWeight: 700, border: 'none',
+    padding: '10px 16px', fontSize: 13, fontWeight: 700, border: 'none',
     background: 'transparent', color: active ? C.red : C.muted,
     borderBottom: `3px solid ${active ? C.red : 'transparent'}`,
     marginBottom: -1, cursor: 'pointer', fontFamily: 'inherit', transition: 'color 0.15s',
@@ -374,6 +453,23 @@ function NumField({ label, hint, value, onChange, placeholder, id, focus, setFoc
         readOnly={readOnly}
         style={inputStyle(!!readOnly, focus === id)}
       />
+      {hint && <span style={s.hint}>{hint}</span>}
+    </div>
+  )
+}
+
+function SelField({ label, hint, value, onChange, options, id, focus, setFocus }) {
+  return (
+    <div style={s.field}>
+      <label style={s.label}>{label}</label>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocus(id)} onBlur={() => setFocus(null)}
+        style={selectStyle(focus === id)}
+      >
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
       {hint && <span style={s.hint}>{hint}</span>}
     </div>
   )
@@ -431,9 +527,9 @@ function EmptyPanel({ text }) {
 }
 
 // ---------------------------------------------------------------------------
-// TAB 1: Coil / Sheet skid (original behavior)
+// TAB 1: Manual skid (original behavior, direct dimension entry)
 // ---------------------------------------------------------------------------
-function CoilTab() {
+function ManualTab() {
   const [width,  setWidth]  = useState('')
   const [length, setLength] = useState('')
   const [maxWt,  setMaxWt]  = useState('4000')
@@ -456,7 +552,8 @@ function CoilTab() {
       <div style={s.card}>
         <div style={s.sectionLabel}>Skid Setup</div>
         <div style={s.sectionDesc}>
-          The drop/remainder skid size and capacity. Determines pack cost per skid and how many skids are needed.
+          Direct dimension entry for drop/remainder skids, sheet, or plate. Determines pack cost per skid and how many
+          skids are needed.
         </div>
 
         <div style={s.row3}>
@@ -507,7 +604,236 @@ function CoilTab() {
 }
 
 // ---------------------------------------------------------------------------
-// TAB 2: Extrusion (shape driven, same entry style as Shipping Dimensions)
+// TAB 2: Coil pack
+// ---------------------------------------------------------------------------
+const COIL_INIT = {
+  alloy: '5052', thickness: '', width: '', weight: '', coreId: '20',
+  qty: '', orient: 'side',
+  autoCoils: 'auto', coilsPerSkid: '1',
+  maxSkidWt: '5000', maxStackH: '72', maxRowLen: '96',
+}
+
+function CoilTab() {
+  const [coil, setCoil] = useState(COIL_INIT)
+  const [focus, setFocus] = useState(null)
+  const up = key => val => setCoil(p => ({ ...p, [key]: val }))
+
+  const density = getDensity(coil.alloy)
+  const geom    = coilGeom(coil)
+  const geomOk  = geom && !geom.error
+
+  const isAuto  = coil.autoCoils === 'auto'
+  const cc      = geomOk ? coilCount({ ...coil, autoCoils: isAuto }, geom) : null
+  const capPer  = cc ? cc.n : 1
+
+  const qty       = parseInt(coil.qty) || 0
+  const skids     = qty > 0 ? Math.max(1, Math.ceil(qty / capPer)) : 1
+  const perSkid   = qty > 0 ? Math.ceil(qty / skids) : capPer
+  const multi     = skids > 1
+  const totalLbs  = geomOk ? geom.lbs * qty : 0
+
+  const fp = geomOk ? coilFootprint(coil.orient, geom.od, geom.w, perSkid) : null
+
+  // Table axes: eye to side prices the saddle width against the row length.
+  // Eye to sky prices the OD footprint on both axes.
+  const tblW = fp ? fp.footWid : 0
+  const tblL = fp ? fp.footLen : 0
+
+  const result    = (tblW > 0 && tblL > 0) ? getPrice(tblW, tblL) : null
+  const perPack   = result ? result.price : 0
+  const totalCost = perPack * skids
+
+  const orientLbl = coil.orient === 'sky' ? 'eye to sky, stacked flat' : 'eye to side, in saddle'
+  const tallStack = fp && fp.totalH > 96
+
+  return (
+    <>
+      {/* COIL SPEC */}
+      <div style={s.card}>
+        <div style={s.sectionLabel}>Coil Spec</div>
+        <div style={s.sectionDesc}>
+          Same coil geometry as the Shipping Dimensions Calculator. OD is calculated from gauge, width, weight, and core
+          ID, then the skid footprint is matched to the closest pack table size.
+        </div>
+
+        <div style={s.row3}>
+          <SelField label="Alloy" value={coil.alloy} onChange={up('alloy')} id="cAlloy"
+            focus={focus} setFocus={setFocus}
+            options={ALLOYS.map(a => ({ value: a.label, label: a.label }))} />
+          <NumField label="Density" hint="lb/in3, from alloy" readOnly
+            value={density} onChange={() => {}} id="cDens" focus={focus} setFocus={setFocus} />
+          <SelField label='Core I.D. (in)' value={coil.coreId} onChange={up('coreId')} id="cCore"
+            focus={focus} setFocus={setFocus}
+            options={[{ value: '16', label: '16"' }, { value: '20', label: '20"' }, { value: '24', label: '24"' }]} />
+        </div>
+
+        <div style={s.row3}>
+          <NumField label="Thickness (in)" step="0.001" placeholder="0.032"
+            value={coil.thickness} onChange={up('thickness')} id="cThk" focus={focus} setFocus={setFocus} />
+          <NumField label="Coil Width (in)" step="0.1" placeholder="48"
+            value={coil.width} onChange={up('width')} id="cW" focus={focus} setFocus={setFocus} />
+          <NumField label="Weight (lbs/coil)" step="1" placeholder="6076"
+            value={coil.weight} onChange={up('weight')} id="cWt" focus={focus} setFocus={setFocus} />
+        </div>
+
+        {geom?.error && (
+          <div style={s.errBanner}>
+            <span style={{ fontSize: 16 }}>{'\u26D4'}</span>
+            <span>{geom.error}</span>
+          </div>
+        )}
+
+        {geomOk && (
+          <div style={s.readout}>
+            <span><strong>OD:</strong> {fmtN(geom.od, 2)}"</span>
+            <span><strong>Coil length:</strong> {Math.round(geom.lengthFt).toLocaleString()} ft</span>
+            <span><strong>Saddle:</strong> {getSaddleWidth(geom.od)}"</span>
+            <span><strong>Volume:</strong> {Math.round(geom.volIn3).toLocaleString()} in3</span>
+          </div>
+        )}
+
+        <div style={s.row2}>
+          <NumField label="Total Coils on Order" hint="pieces being packed" placeholder="e.g. 6"
+            value={coil.qty} onChange={up('qty')} id="cQty" focus={focus} setFocus={setFocus} />
+          <NumField label="Total Weight (lbs)" hint="calculated" readOnly
+            value={totalLbs ? totalLbs.toFixed(0) : ''} onChange={() => {}} id="cTot"
+            focus={focus} setFocus={setFocus} />
+        </div>
+      </div>
+
+      {/* SKID SETUP */}
+      <div style={s.card}>
+        <div style={s.sectionLabel}>Skid Setup</div>
+        <div style={s.sectionDesc}>
+          Orientation sets which dimension grows with each coil. Eye to side lines coils up in a saddle, so the row
+          length grows. Eye to sky stacks them flat, so the height grows.
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginBottom: 16 }}>
+          <div>
+            <label style={{ ...s.label, marginBottom: 8 }}>Orientation</label>
+            <Seg
+              options={[
+                { value: 'side', label: 'Eye to side' },
+                { value: 'sky',  label: 'Eye to sky' },
+              ]}
+              value={coil.orient}
+              onChange={up('orient')}
+            />
+          </div>
+          <div>
+            <label style={{ ...s.label, marginBottom: 8 }}>Coils / Skid</label>
+            <Seg
+              options={[
+                { value: 'auto',   label: 'Auto fit' },
+                { value: 'manual', label: 'Manual' },
+              ]}
+              value={coil.autoCoils}
+              onChange={up('autoCoils')}
+            />
+          </div>
+        </div>
+
+        <div style={s.row3}>
+          {isAuto ? (
+            <NumField label="Max Skid Wt (lbs)" step="100" placeholder="5000"
+              value={coil.maxSkidWt} onChange={up('maxSkidWt')} id="cMaxWt" focus={focus} setFocus={setFocus} />
+          ) : (
+            <NumField label="Coils / Skid" step="1" placeholder="1"
+              value={coil.coilsPerSkid} onChange={up('coilsPerSkid')} id="cPer" focus={focus} setFocus={setFocus} />
+          )}
+
+          {isAuto && (coil.orient === 'sky' ? (
+            <NumField label="Max Stack Ht (in)" step="1" placeholder="72"
+              value={coil.maxStackH} onChange={up('maxStackH')} id="cMaxH" focus={focus} setFocus={setFocus} />
+          ) : (
+            <NumField label="Max Row Len (in)" step="1" placeholder="96"
+              value={coil.maxRowLen} onChange={up('maxRowLen')} id="cMaxL" focus={focus} setFocus={setFocus} />
+          ))}
+
+          <NumField label="Coils / Skid" hint={isAuto ? 'auto fit' : 'as entered'} readOnly
+            value={perSkid || ''} onChange={() => {}} id="cPerCalc" focus={focus} setFocus={setFocus} />
+        </div>
+
+        {fp && (
+          <div style={s.row3}>
+            <NumField label="Skid Width (in)" hint={coil.orient === 'side' ? 'saddle, scales to OD' : 'coil OD'} readOnly
+              value={fmtN(fp.footWid, 1)} onChange={() => {}} id="fpW" focus={focus} setFocus={setFocus} />
+            <NumField label="Skid Length (in)"
+              hint={coil.orient === 'side' ? 'coils x width + 4"' : 'coil OD'} readOnly
+              value={fmtN(fp.footLen, 1)} onChange={() => {}} id="fpL" focus={focus} setFocus={setFocus} />
+            <NumField label="Total Height (in)" hint="floor to top, incl. 6 in skid" readOnly
+              value={fmtN(fp.totalH, 1)} onChange={() => {}} id="fpH" focus={focus} setFocus={setFocus} />
+          </div>
+        )}
+
+        {geomOk && isAuto && cc && (
+          <div style={s.readout}>
+            <span>
+              <strong>Auto fit:</strong> {cc.n} coil{cc.n === 1 ? '' : 's'} per skid, limited by {cc.limit}
+            </span>
+            <span><strong>Per skid wt:</strong> {fmtN(geom.lbs * perSkid, 0)} lbs</span>
+          </div>
+        )}
+
+        {multi && (
+          <div style={s.warnBanner}>
+            <span style={{ fontSize: 16 }}>{'\u26A0\uFE0F'}</span>
+            <span>
+              <strong>{qty} coils</strong> at {capPer} per skid = <strong>{skids} skids</strong> needed.
+              Pack cost x {skids}.
+            </span>
+          </div>
+        )}
+
+        {tallStack && (
+          <div style={s.infoBanner}>
+            <span style={{ fontSize: 16 }}>{'\u2139\uFE0F'}</span>
+            <span>
+              Stack height {fmtN(fp.totalH, 1)}" is over 96". Verify dock clearance and freight before quoting.
+            </span>
+          </div>
+        )}
+      </div>
+
+      {result ? (
+        <ResultPanel
+          result={result}
+          count={skids}
+          perUnit={perPack}
+          total={totalCost}
+          countLabel="Skids Needed"
+          badgeText={`${skids} skids x $${perPack.toFixed(2)}`}
+          metrics={{
+            countSub: `${qty} coils at ${capPer} per skid`,
+            extra: {
+              label: multi ? 'Lbs / Skid' : 'Order Weight',
+              value: multi ? fmtN(geom.lbs * perSkid, 0) : `${fmtN(totalLbs, 0)} lb`,
+              sub: multi
+                ? `${perSkid} coil${perSkid === 1 ? '' : 's'} per skid`
+                : `${qty} coil${qty === 1 ? '' : 's'} at ${fmtN(geom.lbs, 0)} lbs`,
+            },
+          }}
+          summary={
+            <>
+              {coil.alloy} @ {coil.thickness}" x {coil.width}" wide
+              {' | '}OD {fmtN(geom.od, 1)}" on {coil.coreId}" core
+              {' | '}{qty} coil{qty === 1 ? '' : 's'} ({orientLbl})
+              {' | '}Skid: {fmtN(fp.footWid, 1)}" W x {fmtN(fp.footLen, 1)}" L x {fmtN(fp.totalH, 1)}" H
+              {' | '}{skids} skid{skids === 1 ? '' : 's'} at ${perPack.toFixed(2)}
+              {' = '}<span style={{ color: '#fca5a5' }}>${totalCost.toFixed(2)}</span>
+            </>
+          }
+        />
+      ) : (
+        <EmptyPanel text="Enter gauge, width, weight, and coil count to begin." />
+      )}
+    </>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TAB 3: Extrusion (shape driven, same entry style as Shipping Dimensions)
 // ---------------------------------------------------------------------------
 const EXT_INIT = {
   alloy: '6063', shape: 'round_bar',
@@ -560,7 +886,6 @@ function ExtrusionTab() {
     })
   }
 
-  // ---- Derived ----
   const density   = getDensity(ext.alloy)
   const prof      = extProfile(ext, density)
   const shapeCfg  = getShapeCfg(ext.shape)
@@ -573,7 +898,6 @@ function ExtrusionTab() {
   const maxWtNum  = parseFloat(ext.maxWt)  || 0
   const maxPcsNum = parseFloat(ext.maxPcs) || 0
 
-  // Pieces that fit in one bundle: weight cap first, optional piece cap second
   const pcsByWt   = (maxWtNum > 0 && wtPerPc > 0) ? Math.floor(maxWtNum / wtPerPc) : qty
   const capPcs    = Math.max(1, Math.min(pcsByWt || 1, maxPcsNum > 0 ? maxPcsNum : Infinity))
   const bundles   = qty > 0 ? Math.max(1, Math.ceil(qty / capPcs)) : 1
@@ -581,7 +905,6 @@ function ExtrusionTab() {
   const driver    = (maxPcsNum > 0 && maxPcsNum < pcsByWt) ? 'piece count' : 'weight'
   const multi     = bundles > 1
 
-  // Bundle cross section for ONE bundle
   const pack      = (prof && pcsPerBdl > 0) ? packBundle(prof.pieceW, prof.pieceH, pcsPerBdl) : null
   const autoW     = pack ? pack.bundleW : 0
   const bundleW   = ext.widthMode === 'manual' ? (parseFloat(ext.widthOverride) || 0) : autoW
@@ -604,30 +927,14 @@ function ExtrusionTab() {
         </div>
 
         <div style={s.row3}>
-          <div style={s.field}>
-            <label style={s.label}>Alloy</label>
-            <select
-              value={ext.alloy}
-              onChange={e => updateExt('alloy', e.target.value)}
-              onFocus={() => setFocus('alloy')} onBlur={() => setFocus(null)}
-              style={selectStyle(focus === 'alloy')}
-            >
-              {ALLOYS.map(a => <option key={a.label} value={a.label}>{a.label}</option>)}
-            </select>
-          </div>
+          <SelField label="Alloy" value={ext.alloy} onChange={v => updateExt('alloy', v)} id="alloy"
+            focus={focus} setFocus={setFocus}
+            options={ALLOYS.map(a => ({ value: a.label, label: a.label }))} />
           <NumField label="Density" hint="lb/in3, from alloy" readOnly
             value={density} onChange={() => {}} id="dens" focus={focus} setFocus={setFocus} />
-          <div style={s.field}>
-            <label style={s.label}>Shape</label>
-            <select
-              value={ext.shape}
-              onChange={e => updateExt('shape', e.target.value)}
-              onFocus={() => setFocus('shape')} onBlur={() => setFocus(null)}
-              style={selectStyle(focus === 'shape')}
-            >
-              {EXT_SHAPES.map(sh => <option key={sh.key} value={sh.key}>{sh.label}</option>)}
-            </select>
-          </div>
+          <SelField label="Shape" value={ext.shape} onChange={v => updateExt('shape', v)} id="shape"
+            focus={focus} setFocus={setFocus}
+            options={EXT_SHAPES.map(sh => ({ value: sh.key, label: sh.label }))} />
         </div>
 
         <div style={shapeCfg.fields.length >= 3 ? s.row3 : s.row2}>
@@ -809,8 +1116,15 @@ function ExtrusionTab() {
 // ---------------------------------------------------------------------------
 // App shell
 // ---------------------------------------------------------------------------
+const TABS = [
+  { key: 'manual', label: 'Manual', icon: '\u{1F4E6}', sub: 'Skid pack cost by entered dimensions' },
+  { key: 'coil',   label: 'Coil',   icon: '\u{1F300}', sub: 'Coil skid pack cost from gauge, width, and weight' },
+  { key: 'ext',    label: 'Extrusion', icon: '\u{1F4CF}', sub: 'Extrusion bundle pack cost by profile and order qty' },
+]
+
 export default function App() {
-  const [tab, setTab] = useState('coil')
+  const [tab, setTab] = useState('manual')
+  const active = TABS.find(t => t.key === tab)
 
   return (
     <>
@@ -828,28 +1142,25 @@ export default function App() {
 
           <div style={s.card}>
             <div style={s.headerRow}>
-              <div style={s.iconBadge}>{tab === 'ext' ? '\u{1F4CF}' : '\u{1F4E6}'}</div>
+              <div style={s.iconBadge}>{active.icon}</div>
               <div>
                 <h1 style={s.title}>Pack Cost Calculator</h1>
-                <p style={s.subtitle}>
-                  {tab === 'ext'
-                    ? 'Extrusion bundle pack cost by profile and order qty'
-                    : 'Skid pack cost and per lb quote pricing'}
-                </p>
+                <p style={s.subtitle}>{active.sub}</p>
               </div>
             </div>
 
             <div style={s.tabBar}>
-              <button type="button" onClick={() => setTab('coil')} style={tabStyle(tab === 'coil')}>
-                Coil / Sheet
-              </button>
-              <button type="button" onClick={() => setTab('ext')} style={tabStyle(tab === 'ext')}>
-                Extrusion
-              </button>
+              {TABS.map(t => (
+                <button key={t.key} type="button" onClick={() => setTab(t.key)} style={tabStyle(tab === t.key)}>
+                  {t.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {tab === 'coil' ? <CoilTab /> : <ExtrusionTab />}
+          {tab === 'manual' && <ManualTab />}
+          {tab === 'coil'   && <CoilTab />}
+          {tab === 'ext'    && <ExtrusionTab />}
 
         </div>
       </div>
