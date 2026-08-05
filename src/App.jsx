@@ -68,6 +68,23 @@ const ALLOYS = [
 
 const getDensity = alloy => ALLOYS.find(a => a.label === alloy)?.density ?? 0.098
 
+// ---------------------------------------------------------------------------
+// Interleave options, priced per square foot of sheet face.
+// Two sided options already carry the doubled rate, so square footage stays
+// one face per sheet and the rate does the doubling.
+// ---------------------------------------------------------------------------
+const INTERLEAVE = [
+  { key: 'na',     label: 'N/A',           rate: 0.000 },
+  { key: 'pi',     label: 'PI',            rate: 0.010 },
+  { key: 'pvc',    label: 'PVC',           rate: 0.035 },
+  { key: 'bw',     label: 'B/W',           rate: 0.040 },
+  { key: 'pvc2',   label: 'PVC 2 Sided',   rate: 0.070 },
+  { key: 'laser',  label: 'Laser',         rate: 0.122 },
+  { key: 'laser2', label: 'Laser 2 Sided', rate: 0.244 },
+]
+
+const getInterleave = key => INTERLEAVE.find(i => i.key === key) || INTERLEAVE[0]
+
 const fmtN = (n, dec = 1) =>
   parseFloat(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })
 
@@ -475,7 +492,7 @@ function SelField({ label, hint, value, onChange, options, id, focus, setFocus }
   )
 }
 
-function ResultPanel({ result, count, perUnit, total, countLabel, metrics, badgeText, summary }) {
+function ResultPanel({ result, count, perUnit, total, countLabel, metrics, badgeText, summary, addOn, grandTotal }) {
   const multi = count > 1
   const note = noteText(result)
   const shown = [
@@ -483,6 +500,10 @@ function ResultPanel({ result, count, perUnit, total, countLabel, metrics, badge
     ...(multi ? [{ label: countLabel, value: String(count), sub: metrics?.countSub }] : []),
     ...(metrics?.extra ? [metrics.extra] : []),
     { label: 'Total Pack Cost', value: `$${total.toFixed(2)}`, sub: multi ? `$${perUnit.toFixed(2)} x ${count}` : null },
+    ...(addOn ? [addOn] : []),
+    ...(grandTotal != null
+      ? [{ label: 'Total Cost', value: `$${grandTotal.toFixed(2)}`, sub: 'pack plus interleave' }]
+      : []),
   ]
 
   return (
@@ -536,6 +557,13 @@ function ManualTab() {
   const [dropLbs, setDropLbs] = useState('')
   const [focus, setFocus] = useState(null)
 
+  // Interleave state. Defaults to N/A so the card is a no cost pass through.
+  const [ilType,   setIlType]   = useState('na')
+  const [ilMode,   setIlMode]   = useState('auto')
+  const [ilAlloy,  setIlAlloy]  = useState('5052')
+  const [ilGauge,  setIlGauge]  = useState('')
+  const [ilSheets, setIlSheets] = useState('')
+
   const dropLbsNum = parseFloat(dropLbs) || 0
   const maxWtNum   = parseFloat(maxWt)   || 0
   const skidCount  = maxWtNum > 0 && dropLbsNum > 0 ? Math.ceil(dropLbsNum / maxWtNum) : 1
@@ -546,6 +574,22 @@ function ManualTab() {
   const result        = (w > 0 && len > 0) ? getPrice(w, len) : null
   const packPerSkid   = result ? result.price : 0
   const totalPackCost = packPerSkid * skidCount
+
+  // Interleave math. Square footage is the actual entered sheet size, not the
+  // rounded up table size, so the cost tracks real material area.
+  const il         = getInterleave(ilType)
+  const ilOn       = il.rate > 0
+  const sheetSqFt  = (w > 0 && len > 0) ? (w * len) / 144 : 0
+  const ilDensity  = getDensity(ilAlloy)
+  const gaugeNum   = parseFloat(ilGauge) || 0
+  const sheetWt    = (w > 0 && len > 0 && gaugeNum > 0) ? w * len * gaugeNum * ilDensity : 0
+  const autoSheets = (sheetWt > 0 && dropLbsNum > 0) ? Math.max(1, Math.round(dropLbsNum / sheetWt)) : 0
+  const sheetCount = ilMode === 'manual' ? (parseInt(ilSheets) || 0) : autoSheets
+  const ilSqFt     = sheetSqFt * sheetCount
+  const ilCost     = ilSqFt * il.rate
+  const ilReady    = ilOn && sheetCount > 0 && sheetSqFt > 0
+  const ilPerSkid  = ilReady && skidCount > 0 ? ilCost / skidCount : 0
+  const grandTotal = totalPackCost + (ilReady ? ilCost : 0)
 
   return (
     <>
@@ -579,6 +623,91 @@ function ManualTab() {
         )}
       </div>
 
+      {/* INTERLEAVE */}
+      <div style={s.card}>
+        <div style={s.sectionLabel}>Interleave</div>
+        <div style={s.sectionDesc}>
+          Optional sheet protection priced per square foot of sheet face, using the same width, length, and total lbs
+          entered above. Defaults to N/A. The two sided options already carry the doubled rate, so square footage stays
+          one face per sheet.
+        </div>
+
+        <div style={s.row2}>
+          <SelField label="Interleave Type" value={ilType} onChange={setIlType} id="ilType"
+            focus={focus} setFocus={setFocus}
+            options={INTERLEAVE.map(i => ({ value: i.key, label: `${i.label}  ($${i.rate.toFixed(3)}/sqft)` }))} />
+          <NumField label="Rate ($/sqft)" hint="from selection" readOnly
+            value={il.rate.toFixed(3)} onChange={() => {}} id="ilRate" focus={focus} setFocus={setFocus} />
+        </div>
+
+        {ilOn && (
+          <>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ ...s.label, marginBottom: 8 }}>Sheet Count</label>
+              <Seg
+                options={[
+                  { value: 'auto',   label: 'Auto from lbs' },
+                  { value: 'manual', label: 'Enter sheets' },
+                ]}
+                value={ilMode}
+                onChange={setIlMode}
+              />
+              <div style={{ ...s.hint, marginTop: 6 }}>
+                {ilMode === 'auto'
+                  ? 'Sheets derived from total lbs, sheet size, gauge, and alloy density.'
+                  : 'Sheet count entered directly. Gauge and alloy are not used.'}
+              </div>
+            </div>
+
+            <div style={s.row3}>
+              {ilMode === 'auto' ? (
+                <>
+                  <SelField label="Alloy" hint="sets density" value={ilAlloy} onChange={setIlAlloy} id="ilAlloy"
+                    focus={focus} setFocus={setFocus}
+                    options={ALLOYS.map(a => ({ value: a.label, label: a.label }))} />
+                  <NumField label="Gauge (in)" step="0.001" placeholder="0.063"
+                    hint={sheetWt > 0 ? `${fmtN(sheetWt, 1)} lbs/sheet` : 'thickness per sheet'}
+                    value={ilGauge} onChange={setIlGauge} id="ilGauge" focus={focus} setFocus={setFocus} />
+                  <NumField label="Sheets" hint="calculated" readOnly
+                    value={sheetCount || ''} onChange={() => {}} id="ilSheetCalc"
+                    focus={focus} setFocus={setFocus} />
+                </>
+              ) : (
+                <>
+                  <NumField label="Sheets" step="1" placeholder="e.g. 40"
+                    value={ilSheets} onChange={setIlSheets} id="ilSheetMan" focus={focus} setFocus={setFocus} />
+                  <NumField label="Sq Ft / Sheet" hint="calculated" readOnly
+                    value={sheetSqFt ? sheetSqFt.toFixed(2) : ''} onChange={() => {}} id="ilSqPer"
+                    focus={focus} setFocus={setFocus} />
+                  <NumField label="Total Sq Ft" hint="calculated" readOnly
+                    value={ilSqFt ? ilSqFt.toFixed(1) : ''} onChange={() => {}} id="ilSqTot"
+                    focus={focus} setFocus={setFocus} />
+                </>
+              )}
+            </div>
+
+            {ilReady ? (
+              <div style={s.readout}>
+                <span><strong>Sq ft / sheet:</strong> {fmtN(sheetSqFt, 2)}</span>
+                <span><strong>Sheets:</strong> {sheetCount.toLocaleString()}</span>
+                <span><strong>Total sq ft:</strong> {fmtN(ilSqFt, 1)}</span>
+                <span><strong>{il.label} cost:</strong> ${ilCost.toFixed(2)}</span>
+                {multiSkid && <span><strong>Per skid:</strong> ${ilPerSkid.toFixed(2)}</span>}
+              </div>
+            ) : (
+              <div style={s.warnBanner}>
+                <span style={{ fontSize: 16 }}>{'\u26A0\uFE0F'}</span>
+                <span>
+                  {ilMode === 'auto'
+                    ? 'Enter width, length, total lbs, and gauge to derive the sheet count.'
+                    : 'Enter width, length, and a sheet count to price the interleave.'}
+                </span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       {result ? (
         <ResultPanel
           result={result}
@@ -595,6 +724,22 @@ function ManualTab() {
               sub: `${dropLbsNum.toLocaleString()} lbs across ${skidCount}`,
             },
           } : null}
+          addOn={ilReady ? {
+            label: `Interleave (${il.label})`,
+            value: `$${ilCost.toFixed(2)}`,
+            sub: `${fmtN(ilSqFt, 1)} sq ft at $${il.rate.toFixed(3)}`,
+          } : null}
+          grandTotal={ilReady ? grandTotal : null}
+          summary={ilReady ? (
+            <>
+              {fmtN(w, 2)}" W x {fmtN(len, 2)}" L
+              {' | '}{dropLbsNum.toLocaleString()} lbs on {skidCount} skid{skidCount === 1 ? '' : 's'}
+              {' | '}Pack ${totalPackCost.toFixed(2)}
+              {' | '}{il.label}: {sheetCount.toLocaleString()} sheets, {fmtN(ilSqFt, 1)} sq ft at $
+              {il.rate.toFixed(3)} = ${ilCost.toFixed(2)}
+              {' | '}Total{' = '}<span style={{ color: '#fca5a5' }}>${grandTotal.toFixed(2)}</span>
+            </>
+          ) : null}
         />
       ) : (
         <EmptyPanel text="Enter skid dimensions to begin." />
