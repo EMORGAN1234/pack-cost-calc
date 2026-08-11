@@ -591,6 +591,17 @@ function ManualTab() {
   const ilPerSkid  = ilReady && skidCount > 0 ? ilCost / skidCount : 0
   const grandTotal = totalPackCost + (ilReady ? ilCost : 0)
 
+  // Name the one input that is actually blocking the interleave price.
+  const ilMissing = sheetSqFt <= 0
+    ? 'Enter width and length in Skid Setup to price the interleave.'
+    : ilMode === 'manual'
+      ? 'Enter a sheet count to price the interleave.'
+      : gaugeNum <= 0
+        ? 'Enter the gauge to derive the sheet count.'
+        : dropLbsNum <= 0
+          ? 'Enter Total Lbs in Skid Setup to derive the sheet count.'
+          : 'Check the inputs above to price the interleave.'
+
   return (
     <>
       <div style={s.card}>
@@ -697,11 +708,7 @@ function ManualTab() {
             ) : (
               <div style={s.warnBanner}>
                 <span style={{ fontSize: 16 }}>{'\u26A0\uFE0F'}</span>
-                <span>
-                  {ilMode === 'auto'
-                    ? 'Enter width, length, total lbs, and gauge to derive the sheet count.'
-                    : 'Enter width, length, and a sheet count to price the interleave.'}
-                </span>
+                <span>{ilMissing}</span>
               </div>
             )}
           </>
@@ -805,6 +812,15 @@ function CoilTab() {
   const ilPerSkid   = ilReady && skids > 0 ? ilCost / skids : 0
   const ilPerCoil   = ilReady && qty > 0 ? ilCost / qty : 0
   const grandTotal  = totalCost + (ilReady ? ilCost : 0)
+
+  // Name the one input that is actually blocking the interleave price.
+  const ilMissing = ilMode === 'manual'
+    ? 'Enter the total square footage to price the interleave.'
+    : !geomOk
+      ? 'Enter gauge, coil width, and weight in Coil Spec so the coil length can be calculated.'
+      : qty <= 0
+        ? 'Enter Total Coils on Order in Coil Spec to price the interleave.'
+        : 'Check the coil inputs above to price the interleave.'
 
   const orientLbl = coil.orient === 'sky' ? 'eye to sky, stacked flat' : 'eye to side, in saddle'
   const tallStack = fp && fp.totalH > 96
@@ -1004,7 +1020,8 @@ function CoilTab() {
                   <NumField label="Sq Ft / Coil" hint="length x width" readOnly
                     value={sqFtPerCoil ? sqFtPerCoil.toFixed(0) : ''} onChange={() => {}} id="cIlPer"
                     focus={focus} setFocus={setFocus} />
-                  <NumField label="Total Sq Ft" hint={qty > 0 ? `${qty} coil${qty === 1 ? '' : 's'}` : 'calculated'} readOnly
+                  <NumField label="Total Sq Ft"
+                    hint={qty > 0 ? `${qty} coil${qty === 1 ? '' : 's'}` : 'needs coil count'} readOnly
                     value={ilSqFt ? ilSqFt.toFixed(0) : ''} onChange={() => {}} id="cIlTot"
                     focus={focus} setFocus={setFocus} />
                 </>
@@ -1033,11 +1050,7 @@ function CoilTab() {
             ) : (
               <div style={s.warnBanner}>
                 <span style={{ fontSize: 16 }}>{'\u26A0\uFE0F'}</span>
-                <span>
-                  {ilMode === 'auto'
-                    ? 'Enter gauge, width, weight, and coil count so the coil length can be calculated.'
-                    : 'Enter the total square footage to price the interleave.'}
-                </span>
+                <span>{ilMissing}</span>
               </div>
             )}
           </>
