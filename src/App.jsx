@@ -763,6 +763,11 @@ function CoilTab() {
   const [focus, setFocus] = useState(null)
   const up = key => val => setCoil(p => ({ ...p, [key]: val }))
 
+  // Interleave state. Defaults to N/A so the card is a no cost pass through.
+  const [ilType,    setIlType]    = useState('na')
+  const [ilMode,    setIlMode]    = useState('auto')
+  const [ilSqFtMan, setIlSqFtMan] = useState('')
+
   const density = getDensity(coil.alloy)
   const geom    = coilGeom(coil)
   const geomOk  = geom && !geom.error
@@ -787,6 +792,19 @@ function CoilTab() {
   const result    = (tblW > 0 && tblL > 0) ? getPrice(tblW, tblL) : null
   const perPack   = result ? result.price : 0
   const totalCost = perPack * skids
+
+  // Interleave math. Coil face area is the running length times the coil width,
+  // so square footage comes straight from the geometry already calculated.
+  const il          = getInterleave(ilType)
+  const ilOn        = il.rate > 0
+  const sqFtPerCoil = geomOk ? geom.lengthFt * (geom.w / 12) : 0
+  const autoSqFt    = qty > 0 ? sqFtPerCoil * qty : 0
+  const ilSqFt      = ilMode === 'manual' ? (parseFloat(ilSqFtMan) || 0) : autoSqFt
+  const ilCost      = ilSqFt * il.rate
+  const ilReady     = ilOn && ilSqFt > 0
+  const ilPerSkid   = ilReady && skids > 0 ? ilCost / skids : 0
+  const ilPerCoil   = ilReady && qty > 0 ? ilCost / qty : 0
+  const grandTotal  = totalCost + (ilReady ? ilCost : 0)
 
   const orientLbl = coil.orient === 'sky' ? 'eye to sky, stacked flat' : 'eye to side, in saddle'
   const tallStack = fp && fp.totalH > 96
@@ -941,6 +959,91 @@ function CoilTab() {
         )}
       </div>
 
+      {/* INTERLEAVE */}
+      <div style={s.card}>
+        <div style={s.sectionLabel}>Interleave</div>
+        <div style={s.sectionDesc}>
+          Optional coil surface protection priced per square foot, using the coil geometry already calculated above.
+          Face area is running length times coil width. Defaults to N/A. The two sided options already carry the
+          doubled rate, so square footage stays one face per coil.
+        </div>
+
+        <div style={s.row2}>
+          <SelField label="Interleave Type" value={ilType} onChange={setIlType} id="cIlType"
+            focus={focus} setFocus={setFocus}
+            options={INTERLEAVE.map(i => ({ value: i.key, label: `${i.label}  ($${i.rate.toFixed(3)}/sqft)` }))} />
+          <NumField label="Rate ($/sqft)" hint="from selection" readOnly
+            value={il.rate.toFixed(3)} onChange={() => {}} id="cIlRate" focus={focus} setFocus={setFocus} />
+        </div>
+
+        {ilOn && (
+          <>
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ ...s.label, marginBottom: 8 }}>Square Footage</label>
+              <Seg
+                options={[
+                  { value: 'auto',   label: 'Auto from coil' },
+                  { value: 'manual', label: 'Enter sq ft' },
+                ]}
+                value={ilMode}
+                onChange={setIlMode}
+              />
+              <div style={{ ...s.hint, marginTop: 6 }}>
+                {ilMode === 'auto'
+                  ? 'Coil length times width times the number of coils on the order.'
+                  : 'Total square footage entered directly for the whole order.'}
+              </div>
+            </div>
+
+            <div style={s.row3}>
+              {ilMode === 'auto' ? (
+                <>
+                  <NumField label="Coil Length (ft)" hint="from geometry" readOnly
+                    value={geomOk ? geom.lengthFt.toFixed(0) : ''} onChange={() => {}} id="cIlLen"
+                    focus={focus} setFocus={setFocus} />
+                  <NumField label="Sq Ft / Coil" hint="length x width" readOnly
+                    value={sqFtPerCoil ? sqFtPerCoil.toFixed(0) : ''} onChange={() => {}} id="cIlPer"
+                    focus={focus} setFocus={setFocus} />
+                  <NumField label="Total Sq Ft" hint={qty > 0 ? `${qty} coil${qty === 1 ? '' : 's'}` : 'calculated'} readOnly
+                    value={ilSqFt ? ilSqFt.toFixed(0) : ''} onChange={() => {}} id="cIlTot"
+                    focus={focus} setFocus={setFocus} />
+                </>
+              ) : (
+                <>
+                  <NumField label="Total Sq Ft" step="1" placeholder="e.g. 13600"
+                    value={ilSqFtMan} onChange={setIlSqFtMan} id="cIlMan" focus={focus} setFocus={setFocus} />
+                  <NumField label="Sq Ft / Coil" hint="auto reference" readOnly
+                    value={sqFtPerCoil ? sqFtPerCoil.toFixed(0) : ''} onChange={() => {}} id="cIlPerRef"
+                    focus={focus} setFocus={setFocus} />
+                  <NumField label="Interleave Cost" hint="sq ft x rate" readOnly
+                    value={ilReady ? ilCost.toFixed(2) : ''} onChange={() => {}} id="cIlCostRef"
+                    focus={focus} setFocus={setFocus} />
+                </>
+              )}
+            </div>
+
+            {ilReady ? (
+              <div style={s.readout}>
+                <span><strong>Sq ft / coil:</strong> {fmtN(sqFtPerCoil, 0)}</span>
+                <span><strong>Total sq ft:</strong> {fmtN(ilSqFt, 0)}</span>
+                <span><strong>{il.label} cost:</strong> ${ilCost.toFixed(2)}</span>
+                {qty > 1 && <span><strong>Per coil:</strong> ${ilPerCoil.toFixed(2)}</span>}
+                {multi && <span><strong>Per skid:</strong> ${ilPerSkid.toFixed(2)}</span>}
+              </div>
+            ) : (
+              <div style={s.warnBanner}>
+                <span style={{ fontSize: 16 }}>{'\u26A0\uFE0F'}</span>
+                <span>
+                  {ilMode === 'auto'
+                    ? 'Enter gauge, width, weight, and coil count so the coil length can be calculated.'
+                    : 'Enter the total square footage to price the interleave.'}
+                </span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       {result ? (
         <ResultPanel
           result={result}
@@ -959,6 +1062,12 @@ function CoilTab() {
                 : `${qty} coil${qty === 1 ? '' : 's'} at ${fmtN(geom.lbs, 0)} lbs`,
             },
           }}
+          addOn={ilReady ? {
+            label: `Interleave (${il.label})`,
+            value: `$${ilCost.toFixed(2)}`,
+            sub: `${fmtN(ilSqFt, 0)} sq ft at $${il.rate.toFixed(3)}`,
+          } : null}
+          grandTotal={ilReady ? grandTotal : null}
           summary={
             <>
               {coil.alloy} @ {coil.thickness}" x {coil.width}" wide
@@ -966,7 +1075,13 @@ function CoilTab() {
               {' | '}{qty} coil{qty === 1 ? '' : 's'} ({orientLbl})
               {' | '}Skid: {fmtN(fp.footWid, 1)}" W x {fmtN(fp.footLen, 1)}" L x {fmtN(fp.totalH, 1)}" H
               {' | '}{skids} skid{skids === 1 ? '' : 's'} at ${perPack.toFixed(2)}
-              {' = '}<span style={{ color: '#fca5a5' }}>${totalCost.toFixed(2)}</span>
+              {' = '}<span style={{ color: ilReady ? '#fff' : '#fca5a5' }}>${totalCost.toFixed(2)}</span>
+              {ilReady && (
+                <>
+                  {' | '}{il.label}: {fmtN(ilSqFt, 0)} sq ft at ${il.rate.toFixed(3)} = ${ilCost.toFixed(2)}
+                  {' | '}Total{' = '}<span style={{ color: '#fca5a5' }}>${grandTotal.toFixed(2)}</span>
+                </>
+              )}
             </>
           }
         />
